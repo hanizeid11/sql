@@ -18,6 +18,7 @@ else
                      INNER JOIN properties USING(atomic_number) 
                      INNER JOIN types USING(type_id) 
                      WHERE symbol = '$1' OR name = '$1';")
+                     
   fi
   if [[ -z $ELEMENT ]]; then
     echo "I could not find that element in the database."
