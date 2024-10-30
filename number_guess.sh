@@ -1,66 +1,71 @@
-#! /bin/bash
+#!/bin/bash
 
+# Database connection
 PSQL="psql --username=freecodecamp --dbname=number_guessing -t --no-align -c"
 
-# Generate a random number between 1 and 1000
-RANDOM_GUESS=$((RANDOM % 1000 + 1))
-i=0
-
-# Function to check if the input is an integer
-check_integer() {
-  while true; do
-    if [[ "$1" =~ ^[0-9]+$ ]]; then
-      return 0  # Input is a valid integer
-    else
-      read -p "That is not an integer, guess again: " guessed_number
-      check_integer $guessed_number  # Recursively call to check the new input
-      return $?  # Return the status of the last call
-    fi
-  done
+# Function to get user data
+get_user_data() {
+    local username=$1
+    # Get games_played and best_game, use | as a delimiter
+    user_data=$($PSQL "SELECT games_played || '|' || COALESCE(best_game::text, 'NULL') FROM users WHERE username='$username'")
+    echo $user_data
 }
 
+# Function to add new user
+add_user() {
+    local username=$1
+    $PSQL "INSERT INTO users (username) VALUES ('$username')"
+}
 
-# Prompt for username
-read -p "Enter your username: " username
+# Function to update user games
+update_user() {
+    local username=$1
+    local number_of_guesses=$2
+    $PSQL "UPDATE users SET games_played = games_played + 1, best_game = COALESCE(LEAST(best_game, $number_of_guesses), $number_of_guesses) WHERE username='$username'"
+}
 
-# Validate username length
-if [[ ${#username} -gt 22 ]]; then 
-  echo "Not valid username."
-  exit 1
-fi
+# Main logic
+echo "Enter your username:"
+read username
 
-# Fetch user data from the database
-user=$($PSQL "SELECT games_played, best_game FROM users WHERE username='$username'")
-
-# Check if user exists
-if [[ -z $user ]]; then 
-  res=$($PSQL "INSERT INTO users(username) VALUES('$username')")
-  echo -e "Welcome, $username! It looks like this is your first time here.\n"
+# Retrieve user data
+user_data=$(get_user_data "$username")
+if [[ -z $user_data ]]; then
+    echo "Welcome, $username! It looks like this is your first time here."
+    add_user "$username"
 else
-  # Extract values from user data
-  IFS='|' read -r games_played best_game <<< "$user"
-  echo "Welcome back, $username! You have played $games_played games, and your best game took $best_game guesses."
+    # Read games_played and best_game using | as a delimiter
+    IFS='|' read games_played best_game <<< "$user_data"
+    
+    # Handle case where best_game might be NULL
+    if [[ $best_game == "NULL" ]]; then
+        best_game="N/A"
+    fi
+
+    echo "Welcome back, $username! You have played $games_played games, and your best game took $best_game guesses."
 fi
 
-# Prompt for guessing the secret number
-read -p "Guess the secret number between 1 and 1000: " guessed_number
-check_integer $guessed_number
+# Generate a random secret number between 1 and 1000
+secret_number=$(( RANDOM % 1000 + 1 ))
+number_of_guesses=0
+echo "Guess the secret number between 1 and 1000:"
 
-# Game loop for guessing
-while [[ $guessed_number -ne $RANDOM_GUESS ]]; do 
-    ((i++))  # Increment the guess counter
-    if (( guessed_number > RANDOM_GUESS )); then
-      echo $RANDOM_GUESS
-      read -p "It's lower than that, guess again: " guessed_number
-      check_integer $guessed_number
-    elif (( guessed_number < RANDOM )); then
-      echo $RANDOM_GUESS
-      read -p "It's higher than that, guess again: " guessed_number
-      check_integer $guessed_number
+while true; do
+    read guess
+    if ! [[ $guess =~ ^[0-9]+$ ]]; then
+        echo "That is not an integer, guess again:"
+        continue
+    fi
+
+    number_of_guesses=$((number_of_guesses + 1))
+
+    if (( guess < secret_number )); then
+        echo "It's higher than that, guess again:"
+    elif (( guess > secret_number )); then
+        echo "It's lower than that, guess again:"
+    else
+        echo "You guessed it in $number_of_guesses tries. The secret number was $secret_number. Nice job!"
+        update_user "$username" "$number_of_guesses"
+        break
     fi
 done
-
-# Successful guess message
-((i++))  # Increment for the correct guess
-echo "You guessed it in $i tries. The secret number was $RANDOM. Nice job!"
-exit
