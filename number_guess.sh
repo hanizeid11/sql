@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Database connection
-PSQL="psql --username=freecodecamp --dbname=number_guessing -t --no-align -c"
+PSQL="psql --username=freecodecamp --dbname=number_guess -t --no-align -c"
 
 # Function to get user data
 get_user_data() {
@@ -39,7 +39,7 @@ else
     
     # Handle case where best_game might be NULL
     if [[ $best_game == "NULL" ]]; then
-        best_game="N/A"
+        best_game=0
     fi
 
     echo "Welcome back, $username! You have played $games_played games, and your best game took $best_game guesses."
