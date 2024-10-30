@@ -66,6 +66,6 @@ while true; do
     else
         echo "You guessed it in $number_of_guesses tries. The secret number was $secret_number. Nice job!"
         update_user "$username" "$number_of_guesses"
-        break
+        exit
     fi
 done
