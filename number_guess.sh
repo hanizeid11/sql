@@ -8,10 +8,17 @@ i=0
 
 # Function to check if the input is an integer
 check_integer() {
-  if ! [[ "$1" =~ ^[0-9]+$ ]]; then
-    read -p  "That is not an integer, guess again:" guessed_number
-  fi
+  while true; do
+    if [[ "$1" =~ ^[0-9]+$ ]]; then
+      return 0  # Input is a valid integer
+    else
+      read -p "That is not an integer, guess again: " guessed_number
+      check_integer $guessed_number  # Recursively call to check the new input
+      return $?  # Return the status of the last call
+    fi
+  done
 }
+
 
 # Prompt for username
 read -p "Enter your username: " username
