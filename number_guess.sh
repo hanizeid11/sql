@@ -9,8 +9,7 @@ i=0
 # Function to check if the input is an integer
 check_integer() {
   if ! [[ "$1" =~ ^[0-9]+$ ]]; then
-    echo "Error: Argument is not an integer."
-    exit 1
+    read -p  "That is not an integer, guess again:" guessed_number
   fi
 }
 
@@ -57,3 +56,4 @@ done
 # Successful guess message
 ((i++))  # Increment for the correct guess
 echo "You guessed it in $i tries. The secret number was $RANDOM. Nice job!"
+exit
